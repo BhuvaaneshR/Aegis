@@ -1,0 +1,68 @@
+#declaring cmake version
+cmake_minimum_required(VERSION 3.16)
+
+#project declaration - AEGIS
+project(AEGIS CXX)
+
+#declatring c++ version 17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+#exporting compile commands
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+#AUTOMOC - makes the Qt macros into C++ understandable ones
+set(CMAKE_AUTOMOC ON)
+#AUTOUIC - converts file.ui into file.h (to make it compiler understandable)
+set(CMAKE_AUTOUIC ON)
+#AUTORCC - loads packages as executable ones 
+set(CMAKE_AUTORCC ON)
+
+#searching Qt in system
+find package(Qt6 REQUIRED COMPONENTS Widgets)
+
+#initializing sanitizers - to debug instead of release if nothing is there by default
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE Debug)
+endif()
+
+add_compile_options(-Wall, -Wextra, -Wpedantic, -Wshadow, -Wconversation)
+
+#adding sanitizers in debug
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+	add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer -g)
+	add_link_options(-fsanitize=address,undefined)
+endif()
+
+#find libsodium
+find_path(SODIUM_INCLUDE_DIR sodium.h)
+find_library(SODIUM_LIBRARY sodium)
+
+#error - when libsodium is not found(libsodium not installed)
+if(NOT SODIUM_INCLUDE_DIR OR NOT SODIUM_LIBRARY)
+	message(FATAL_ERROR "libsodium not found - install it")
+endif()
+
+#adding executables
+add_executable(Aegis
+	src/main.cpp
+	src/core/UserStore.cpp
+	src/core/ActivityLog.cpp
+	src/ui/LoginWindow.cpp
+	src/ui/HomeWindow.cpp
+	include/core/SecureBuffer.h
+	incldue/core/UserStore.h
+	include/core/ActivityLog.h
+	include/core/LoginWindow.h
+	include/core/HomeWindow.h
+)
+
+#including and linking libraries - including in header
+target_include_directories(textlab PRIVATE ${SODIUM_INCLUDE_DIR} include)
+target_link_libraries(textlab PRIVATE ${SODIUM_LIBRARY} Qt6::Widgets)
+
+#Status Messages - helps verify that CMake found the expected configuration
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+messgae(STATUS "libsodium include ${SODIUM_INCLUDE_DIR}")
+message(STATUS "libsodium library ${SODIUM_LIBRARY}")
+
